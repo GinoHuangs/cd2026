@@ -2,72 +2,90 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Define the Node for Linked List
 typedef struct Node {
     char c;
+    int count;
     struct Node *next;
 } Node;
 
 int main() {
     FILE *file = fopen(__FILE__, "r");
     if (file == NULL) {
-        printf("Error opening file.\n");
+        printf("無法開啟檔案: %s\n", __FILE__);
         return 1;
     }
 
     Node *head = NULL;
-    Node *tail = NULL;
-    int ch;
+    Node *tail = NULL; // 新增 tail 指標，為了達成 O(1) 的尾端插入
+    
+    // O(1) 尋找用的指標陣列
+    Node *lookup[256] = {NULL}; 
 
-    // Read character by character and append to the Linked List
+    int ch;
+    // Scanner 的第一步：Character Stream Reading
     while ((ch = fgetc(file)) != EOF) {
-        Node *newNode = (Node *)malloc(sizeof(Node));
-        if (newNode == NULL) {
-            printf("Memory allocation failed!\n");
-            fclose(file);
-            return 1;
-        }
-        newNode->c = (char)ch;
-        newNode->next = NULL;
-        
-        // Append to the tail of the linked list to maintain order
-        if (head == NULL) {
-            head = newNode;
-            tail = newNode;
+        unsigned char index = (unsigned char)ch;
+
+        if (lookup[index] != NULL) {
+            // 字元已存在，次數加一
+            lookup[index]->count++;
         } else {
-            tail->next = newNode;
-            tail = newNode;
+            // 字元未存在，建立新 Node
+            Node *newNode = (Node *)malloc(sizeof(Node));
+            if (newNode == NULL) {
+                printf("記憶體配置失敗！\n");
+                fclose(file);
+                return 1;
+            }
+            newNode->c = (char)index;
+            newNode->count = 1;
+            newNode->next = NULL;
+            
+            // 【 Scanner 順序保留】：插入到 Linked List 的尾端
+            if (head == NULL) {
+                head = newNode;
+                tail = newNode;
+            } else {
+                tail->next = newNode;
+                tail = newNode;
+            }
+
+            // 記錄到 lookup table
+            lookup[index] = newNode;
         }
     }
 
     fclose(file);
 
-    // Output formatting matching the provided image
+    // 模擬 Scanner 輸出：從 link-list 把每一個 char 依序輸出
     printf("Input  -> reading %s\n", __FILE__);
-    printf("Output -> \n");
+    printf("Output -> ");
     
     Node *current = head;
     while (current != NULL) {
-        // Handle special characters as shown in the image
+        // 為了讓輸出漂亮地呈現 "#, i, n, c..."，針對特殊字元做字串化處理
         if (current->c == '\n') {
-            printf("'\\n' ");
-        } else if (current->c == '\t') {
-            printf("'\\t' ");
+            printf("\\n");
         } else if (current->c == '\r') {
-            // Handle carriage return for Windows environments silently or explicitly
-            printf("'\\r' ");
+            printf("\\r");
+        } else if (current->c == '\t') {
+            printf("\\t");
         } else if (current->c == ' ') {
-            // In the image, space is represented as '_'
-            printf("'_' "); 
+            printf("' '"); // 空白用單引號包起來比較清楚
         } else {
-            // Normal characters
-            printf("'%c' ", current->c);
+            printf("%c", current->c);
         }
+
+        // 如果不是最後一個節點，印出逗號
+        if (current->next != NULL) {
+            printf(", ");
+        }
+        
         current = current->next;
     }
     printf("\n");
 
-    // Free the linked list memory
+    // 釋放記憶體
     current = head;
     while (current != NULL) {
         Node *temp = current;
